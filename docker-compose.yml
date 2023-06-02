@@ -1,0 +1,59 @@
+version: '3.8'
+services:
+    api:
+        container_name: symfony6
+        build:
+          context: ./docker/php-fpm
+        ports:
+            - "9000:8000"
+        volumes:
+            - ./api:/var/www/html
+        networks:
+          - symfonydocker
+    mailer:
+        image: schickling/mailcatcher
+        ports: [1025, 1080]
+
+    database:
+        container_name: postgresql
+        image: postgres:13-alpine
+        environment:
+            POSTGRES_DB: app
+            POSTGRES_PASSWORD: symfony
+            POSTGRES_USER: symfony
+        volumes:
+            - db-data:/var/lib/postgresql/data:rw
+        ports:
+            - "5432"
+        networks:
+          - symfonydocker
+    nginx:
+      container_name: nginx
+      build:
+        context: ./docker/nginx
+      volumes:
+        - ./api/:/var/www/html
+        - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+        - ./docker/nginx/sites/:/etc/nginx/sites-available
+        - ./docker/nginx/conf.d/:/etc/nginx/conf.d
+        - ./logs:/var/log
+      depends_on:
+        - api
+      ports:
+        - "80:80"
+        - "443:443"
+    pgadmin:
+      container_name: pgadmin4
+      image: dpage/pgadmin4
+      restart: always
+      environment:
+        PGADMIN_DEFAULT_EMAIL: admin@admin.com
+        PGADMIN_DEFAULT_PASSWORD: root
+      ports:
+        - "5050:80"
+      networks: 
+        - symfonydocker
+volumes:
+  db-data:
+networks:
+  symfonydocker:
